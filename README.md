@@ -36,11 +36,20 @@ class Article(SoftDeleteModel):
 
 ## Usage
 ### Model
+Use the abstract model `SoftDeleteModel` for adding one field:
+* is_deleted - is a boolean field, shows weather of a deletion state of object
+
+Use the abstract model `BaseModel` for adding another two fields in addition to `is_deleted`:
+* create_at - is a datetime field, shows the time of creation of object
+* update_at - is a datetime field, shows the time of last update of object
 
 ```python
-from django_softdelete_mixin import SoftDeleteModel,BaseModel
+from django_softdelete_mixin.models import SoftDeleteModel, BaseModel
 
-class YourModel(SoftDeleteModelMixin):
+class YourModel(SoftDeleteModel):
+    pass
+
+class YourModel(BaseModel):
     pass
 ```
 ### Custom QuerySet
