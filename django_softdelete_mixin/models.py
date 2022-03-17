@@ -4,7 +4,7 @@ from .deletion import SoftDeleteCollector
 from .manger import SoftDeleteManager
 
 
-class SoftDeleteModelMixin(models.Model):
+class SoftDeleteModel(models.Model):
     is_deleted = models.BooleanField('是否删除', default=False)
     objects = SoftDeleteManager()
     src_objects = models.Manager()
@@ -27,7 +27,7 @@ class SoftDeleteModelMixin(models.Model):
     class Meta:
         abstract = True
 
-class BaseModel(SoftDeleteModelMixin):
+class BaseModel(SoftDeleteModel):
     create_at = models.DateTimeField('创建时间', auto_now_add=True)
     update_at = models.DateTimeField('更新时间', auto_now=True)
 
