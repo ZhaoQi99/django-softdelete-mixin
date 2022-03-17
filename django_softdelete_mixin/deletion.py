@@ -4,7 +4,6 @@ from operator import attrgetter
 from django.db import transaction
 from django.db.models import signals, sql
 from django.db.models.deletion import Collector
-from django.utils import six
 
 
 class SoftDeleteCollector(Collector):
@@ -33,18 +32,18 @@ class SoftDeleteCollector(Collector):
                 deleted_counter[qs.model._meta.label] += count
 
             # update fields
-            for model, instances_for_fieldvalues in six.iteritems(self.field_updates):
-                for (field, value), instances in six.iteritems(instances_for_fieldvalues):
+            for model, instances_for_fieldvalues in self.field_updates.items():
+                for (field, value), instances in instances_for_fieldvalues.items():
                     query = sql.UpdateQuery(model)
                     query.update_batch([obj.pk for obj in instances],
                                        {field.name: value}, self.using)
 
             # reverse instance collections
-            for instances in six.itervalues(self.data):
+            for instances in self.data.values():
                 instances.reverse()
 
             # delete instances
-            for model, instances in six.iteritems(self.data):
+            for model, instances in self.data.items():
                 query = sql.UpdateQuery(model)
                 pk_list = [obj.pk for obj in instances]
                 query.update_batch(pk_list, {'is_deleted':True},self.using)
@@ -57,11 +56,11 @@ class SoftDeleteCollector(Collector):
                             sender=model, instance=obj, using=self.using
                         )
 
-        for model, instances_for_fieldvalues in six.iteritems(self.field_updates):
-            for (field, value), instances in six.iteritems(instances_for_fieldvalues):
+        for instances_for_fieldvalues in self.field_updates.values():
+            for (field, value), instances in instances_for_fieldvalues.items():
                 for obj in instances:
                     setattr(obj, field.attname, value)
-        for model, instances in six.iteritems(self.data):
+        for model, instances in self.data.items():
             for instance in instances:
                 setattr(instance, model._meta.pk.attname, None)
         return sum(deleted_counter.values()), dict(deleted_counter)
