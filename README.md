@@ -18,8 +18,6 @@ class Article(SoftDeleteModel):
 # Example of use
 >>> a1 = Article.objects.create(title='django')
 >>> a2 = Article.objects.create(title='python')
->>> Article.objects.count()
-2
 
 # soft deletion of object
 >>> a1.delete()  
@@ -28,6 +26,10 @@ class Article(SoftDeleteModel):
 >>> Article.objects.filter(title='python').delete()
 >>> Article.objects.count()
 0
+
+# Django default manager
+>>> Article.src_objects.count()
+2
 
 # hard deletion of object
 >>> a1.delete(soft=False)  
