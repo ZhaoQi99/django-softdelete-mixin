@@ -67,6 +67,17 @@ class YourOwnManager(SoftDeleteManager):
     pass
 ```
 
+### Mixins
+```python
+from django_softdelete_mixin.mixins import SoftDeleteManagerMixin,SoftDeleteQuerySetMixin
+
+# For inherited model
+class YourOwnManager(SoftDeleteManagerMixin, SomeParentManagerClass):
+    pass
+
+class YourOwnQuerySet(SoftDeleteQuerySetMixin, SomeParentQuerySetClass):
+    pass
+```
 ## License
 [GNU General Public License v3.0](https://github.com/ZhaoQi99/django-softdelete-mixin/blob/main/LICENSE)
 ## Author

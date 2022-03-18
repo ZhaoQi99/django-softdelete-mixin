@@ -1,3 +1,4 @@
-from .models import SoftDeleteModel,BaseModel
-from .query import SoftDeleteQuerySetMixin,SoftDeleteQuerySet
-from .manger import SoftDeleteManagerMixin,SoftDeleteManager
+from .manger import SoftDeleteManager
+from .mixins import SoftDeleteManagerMixin
+from .models import BaseModel, SoftDeleteModel
+from .query import SoftDeleteQuerySet
