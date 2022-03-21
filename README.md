@@ -54,6 +54,28 @@ class YourModel(SoftDeleteModel):
 class YourModel(BaseModel):
     pass
 ```
+### QuerySet
+
+* `ModelName.objects.all()` - returns all objects except deleted ones
+* `ModelName.src_objects.all()` - returns all objects 
+
+### Delete
+
+* `ModelName.objects.all().delete()` - soft delete all objects
+* `ModelName.objects.all().delete(soft=False)` - hard delete all objects
+
+### Mixins
+```python
+from django_softdelete_mixin.mixins import SoftDeleteManagerMixin,SoftDeleteQuerySetMixin
+
+# For inherited model
+class YourOwnManager(SoftDeleteManagerMixin, SomeParentManagerClass):
+    pass
+
+class YourOwnQuerySet(SoftDeleteQuerySetMixin, SomeParentQuerySetClass):
+    pass
+```
+
 ### Custom QuerySet
 ```python
 from django_softdelete_mixin.query import SoftDeleteQuerySet
@@ -69,17 +91,6 @@ class YourOwnManager(SoftDeleteManager):
     pass
 ```
 
-### Mixins
-```python
-from django_softdelete_mixin.mixins import SoftDeleteManagerMixin,SoftDeleteQuerySetMixin
-
-# For inherited model
-class YourOwnManager(SoftDeleteManagerMixin, SomeParentManagerClass):
-    pass
-
-class YourOwnQuerySet(SoftDeleteQuerySetMixin, SomeParentQuerySetClass):
-    pass
-```
 ## License
 [GNU General Public License v3.0](https://github.com/ZhaoQi99/django-softdelete-mixin/blob/main/LICENSE)
 ## Author
