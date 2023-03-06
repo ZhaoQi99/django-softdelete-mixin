@@ -1,3 +1,4 @@
+import random
 from collections import Counter
 from functools import reduce
 from operator import attrgetter, or_
@@ -5,6 +6,7 @@ from operator import attrgetter, or_
 from django.db import models, transaction
 from django.db.models import query_utils, signals, sql
 from django.db.models.deletion import Collector
+from django.utils import timezone
 
 
 class SoftDeleteCollector(Collector):
@@ -16,8 +18,8 @@ class SoftDeleteCollector(Collector):
             [(f"{related_field.name}__in", objs) for related_field in related_fields],
             connector=query_utils.Q.OR,
         )
-        return related_model._base_manager.using(self.using).filter(predicate)
-    
+        return related_model.objects.using(self.using).filter(predicate)
+
     def delete(self):
         # sort instance collections
         for model, instances in self.data.items():
@@ -35,9 +37,10 @@ class SoftDeleteCollector(Collector):
             instance = list(instances)[0]
             if self.can_fast_delete(instance):
                 with transaction.mark_for_rollback_on_error(self.using):
-                    count = sql.DeleteQuery(model).delete_batch(
-                        [instance.pk], self.using
+                    sql.UpdateQuery(model).update_batch(
+                        [instance.pk], {"deleted": self.random_datetime()}, self.using
                     )
+                    count = 1  # TODO:  update_batch method does not return count
                 setattr(instance, model._meta.pk.attname, None)
                 return count, {model._meta.label: count}
 
@@ -54,7 +57,7 @@ class SoftDeleteCollector(Collector):
 
             # fast deletes
             for qs in self.fast_deletes:
-                count = qs._raw_delete(using=self.using)
+                count = qs.using(self.using).update(deleted=self.random_datetime())
                 if count:
                     deleted_counter[qs.model._meta.label] += count
 
@@ -86,9 +89,12 @@ class SoftDeleteCollector(Collector):
 
             # delete instances
             for model, instances in self.data.items():
-                query = sql.DeleteQuery(model)
+                query = sql.UpdateQuery(model)
                 pk_list = [obj.pk for obj in instances]
-                count = query.delete_batch(pk_list, self.using)
+                query.update_batch(
+                    pk_list, {"deleted": self.random_datetime()}, self.using
+                )
+                count = len(pk_list)  # TODO:  update_batch method does not return count
                 if count:
                     deleted_counter[model._meta.label] += count
 
@@ -105,3 +111,8 @@ class SoftDeleteCollector(Collector):
             for instance in instances:
                 setattr(instance, model._meta.pk.attname, None)
         return sum(deleted_counter.values()), dict(deleted_counter)
+
+    def random_datetime(self):
+        # 微秒+4位随机数共27位 eg: 20221108.164544.897432.5045
+        now_str = timezone.now().strftime("%Y%m%d.%H%M%S.%f")
+        return "{}.{}".format(now_str, random.randint(1000, 9999))
