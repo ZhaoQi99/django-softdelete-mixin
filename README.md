@@ -2,6 +2,10 @@
 ## What is it
 django-softdelete-mixin is a simple Django package that contains some mixins which implement soft delete for Django ORM.
 
+## Requirements
+* Python 3.6+
+* Django 3.1+ (`related_objects` function has break changes in [django/django@26c66f45](https://github.com/django/django/commit/26c66f45193fa65125ca06328817927d6bbc2b22))
+
 ## Installation
 Install from github.
 ```bash
@@ -39,11 +43,11 @@ class Article(SoftDeleteModel):
 ## Usage
 ### Model
 Use the abstract model `SoftDeleteModel` for adding one field:
-* is_deleted - is a boolean field, shows weather of a deletion state of object
+* deleted - is a CharField, shows weather of a deletion state of object
 
 Use the abstract model `BaseModel` for adding another two fields in addition to `is_deleted`:
-* create_at - is a datetime field, shows the time of creation of object
-* update_at - is a datetime field, shows the time of last update of object
+* create_at - is a DateTimeField, shows the time of creation of object
+* update_at - is a DateTimeField, shows the time of last update of object
 
 ```python
 from django_softdelete_mixin.models import SoftDeleteModel, BaseModel
@@ -63,6 +67,7 @@ class YourModel(BaseModel):
 
 * `ModelName.objects.all().delete()` - soft delete all objects
 * `ModelName.objects.all().delete(soft=False)` - hard delete all objects
+* `Model.src_objects.delete()` - hard delete all objects(including soft deleted)
 
 ### Mixins
 ```python
@@ -76,14 +81,52 @@ class YourOwnQuerySet(SoftDeleteQuerySetMixin, SomeParentQuerySetClass):
     pass
 ```
 
-### Custom QuerySet
+### Unique
+
+```python
+class Test(BaseModel):
+    name = models.CharField(max_length=100)
+    class Meta:
+        unique_together = (
+            ('name', 'deleted'),
+        )
+
+```
+
+In [Django REST framework](https://www.django-rest-framework.org/):
+
+```python
+from django_softdelete_mixin.constant import UN_DELETE
+
+class TestSerializer(serializers.ModelSerializer):
+    deleted = serializers.HiddenField(default=UN_DELETE)
+
+    class Meta:
+        model = Test
+        fields = "__all__"
+        extra_kwargs = {
+            "deleted": {"write_only": True},
+        }
+        validators = [
+            serializers.UniqueTogetherValidator(
+                queryset=Test.objects.all(),
+                fields=("name", "deleted"),
+                message="XXX已存在"
+            )
+        ]
+```
+
+### Custom
+
+#### QuerySet
+
 ```python
 from django_softdelete_mixin.query import SoftDeleteQuerySet
 
 class YourOwnQuerySet(SoftDeleteQuerySet):
     pass
 ```
-### Custom Manager
+#### Manager
 ```python
 from django_softdelete_mixin.manager import SoftDeleteManager
 
@@ -91,7 +134,20 @@ class YourOwnManager(SoftDeleteManager):
     pass
 ```
 
+## Bug
+
+### Querying in the opposite direction using ForeignKey
+
+Use the following solutions to solve:
+
+```python
+from django_softdelete_mixin.constant import UN_DELETE
+role = Role.objects.first()
+role.user_set.filter(role_user__deleted=UN_DELETE)
+```
+
 ## License
+
 [GNU General Public License v3.0](https://github.com/ZhaoQi99/django-softdelete-mixin/blob/main/LICENSE)
 ## Author
 * Qi Zhao([zhaoqi99@outlook.com](mailto:zhaoqi99@outlook.com))
