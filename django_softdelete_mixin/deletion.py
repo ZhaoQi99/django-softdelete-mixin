@@ -3,6 +3,7 @@ from collections import Counter
 from functools import reduce
 from operator import attrgetter, or_
 
+from django import get_version
 from django.db import models, transaction
 from django.db.models import query_utils, signals, sql
 from django.db.models.deletion import Collector
@@ -62,26 +63,38 @@ class SoftDeleteCollector(Collector):
                     deleted_counter[qs.model._meta.label] += count
 
             # update fields
-            for (field, value), instances_list in self.field_updates.items():
-                updates = []
-                objs = []
-                for instances in instances_list:
-                    if (
-                        isinstance(instances, models.QuerySet)
-                        and instances._result_cache is None
-                    ):
-                        updates.append(instances)
-                    else:
-                        objs.extend(instances)
-                if updates:
-                    combined_updates = reduce(or_, updates)
-                    combined_updates.update(**{field.name: value})
-                if objs:
-                    model = objs[0].__class__
-                    query = sql.UpdateQuery(model)
-                    query.update_batch(
-                        list({obj.pk for obj in objs}), {field.name: value}, self.using
-                    )
+            if get_version() >= "4.2":
+                # https://github.com/django/django/commit/0701bb8e1f1771b36cdde45602ad377007e372b3
+                for (field, value), instances_list in self.field_updates.items():
+                    updates = []
+                    objs = []
+                    for instances in instances_list:
+                        if (
+                            isinstance(instances, models.QuerySet)
+                            and instances._result_cache is None
+                        ):
+                            updates.append(instances)
+                        else:
+                            objs.extend(instances)
+                    if updates:
+                        combined_updates = reduce(or_, updates)
+                        combined_updates.update(**{field.name: value})
+                    if objs:
+                        model = objs[0].__class__
+                        query = sql.UpdateQuery(model)
+                        query.update_batch(
+                            list({obj.pk for obj in objs}), {field.name: value}, self.using
+                        )
+            else:
+                for model, instances_for_fieldvalues in self.field_updates.items():
+                    for (field, value), instances in instances_for_fieldvalues.items():
+                        query = sql.UpdateQuery(model)
+                        query.update_batch(
+                            [obj.pk for obj in instances],
+                            {field.name: value},
+                            self.using,
+                        )
+
 
             # reverse instance collections
             for instances in self.data.values():
