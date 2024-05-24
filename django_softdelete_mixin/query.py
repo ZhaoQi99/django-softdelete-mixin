@@ -1,3 +1,4 @@
+from django import get_version
 from django.db import transaction
 from django.db.models.query import QuerySet
 
@@ -11,7 +12,10 @@ class SoftDeleteQuerySetMixin:
             self._not_support_combined_queries("delete")
             if self.query.is_sliced:
                 raise TypeError("Cannot use 'limit' or 'offset' with delete().")
-            if self.query.distinct or self.query.distinct_fields:
+            # https://github.com/django/django/commit/28e2077148f7602d29165e90965974698819cbba
+            if (
+                get_version() < "5.0" and self.query.distinct
+            ) or self.query.distinct_fields:
                 raise TypeError("Cannot call delete() after .distinct().")
             if self._fields is not None:
                 raise TypeError(
