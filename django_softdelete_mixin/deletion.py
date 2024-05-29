@@ -123,3 +123,13 @@ class SoftDeleteCollector(Collector):
             for instance in instances:
                 setattr(instance, model._meta.pk.attname, None)
         return sum(deleted_counter.values()), dict(deleted_counter)
+
+    def collect(self, objs, only_self=False, **kwargs) -> None:
+        if only_self:
+            if isinstance(objs, list):
+                model = objs[0].__class__
+                self.data[model].update(objs)
+            else:
+                self.fast_deletes.append(objs)
+            return
+        super().collect(objs, **kwargs)

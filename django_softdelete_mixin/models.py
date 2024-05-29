@@ -11,7 +11,10 @@ class SoftDeleteModel(models.Model):
     src_objects = models.Manager()
 
     @transaction.atomic
-    def delete(self, using=None, keep_parents=False, soft=True):
+    def delete(self, using=None, keep_parents=False, soft=True, only_self=False):
+        if soft is False and only_self:
+            raise ValueError("`soft` can't be False when `only_self` is True.")
+
         if soft:
             using = using or router.db_for_write(self.__class__, instance=self)
             assert self._get_pk_val() is not None, (
@@ -20,7 +23,7 @@ class SoftDeleteModel(models.Model):
             )
 
             collector = SoftDeleteCollector(using=using)
-            collector.collect([self], keep_parents=keep_parents)
+            collector.collect([self], keep_parents=keep_parents, only_self=only_self)
             return collector.delete()
         else:
             return super().delete(using, keep_parents)

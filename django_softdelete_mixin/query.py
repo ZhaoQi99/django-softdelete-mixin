@@ -7,7 +7,10 @@ from .deletion import SoftDeleteCollector
 
 class SoftDeleteQuerySetMixin:
     @transaction.atomic
-    def delete(self, soft=True):
+    def delete(self, soft=True, only_self=False):
+        if soft is False and only_self:
+            raise ValueError("`soft` can't be False when `only_self` is True.")
+
         if soft:
             self._not_support_combined_queries("delete")
             if self.query.is_sliced:
@@ -24,12 +27,16 @@ class SoftDeleteQuerySetMixin:
 
             del_query = self._chain()
             collector = SoftDeleteCollector(using=del_query.db, origin=self)
-            collector.collect(del_query)
+            collector.collect(
+                del_query,
+                only_self=only_self,
+            )
             deleted, _rows_count = collector.delete()
             self._result_cache = None
             return deleted, _rows_count
         else:
             return super().delete()
+
 
 class SoftDeleteQuerySet(SoftDeleteQuerySetMixin, QuerySet):
     pass
