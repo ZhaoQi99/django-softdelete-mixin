@@ -153,12 +153,32 @@ class YourOwnQuerySet(SoftDeleteQuerySet):
 ```
 
 #### Manager
-
 ```python
 from django_softdelete_mixin.manager import SoftDeleteManager
 
 class YourOwnManager(SoftDeleteManager):
     pass
+```
+> [!IMPORTANT]  
+> According to the official documentation [Managers | Django documentation | Django](https://docs.djangoproject.com/en/5.0/topics/db/managers/#custom-managers-and-model-inheritance), if you want to add extra managers to your Model class, you must use the following two methods to to ensure that the `default_manager` is `SoftDeleteManager`.
+
+```python
+class YourModel(SoftDeleteModel):
+    title = models.CharField(max_length=100)
+
+    class Meta:
+        default_manager_name  = "objects"
+```
+or
+```python
+class ExtraManager(models.Model):
+    other_objects = YourOwnManager()
+
+    class Meta:
+        abstract = True
+
+class YourModel(SoftDeleteModel, ExtraManager):
+    title = models.CharField(max_length=100)
 ```
 
 ## Bug
